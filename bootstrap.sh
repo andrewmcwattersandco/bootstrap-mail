@@ -25,7 +25,6 @@ sudo apt-get -y install certbot
 # https://www.eff.org/deeplinks/2019/01/encrypting-web-encrypting-net-primer-using-certbot-secure-your-mailserver#:~:text=on%20each%20renewal.-,Postfix,-Run%20the%20following
 # sudo postconf -e smtpd_tls_cert_file=/etc/letsencrypt/live/mail.example.com/fullchain.pem
 # sudo postconf -e smtpd_tls_key_file=/etc/letsencrypt/live/mail.example.com/privkey.pem
-sudo systemctl restart postfix.service
 
 # https://documentation.ubuntu.com/server/how-to/mail-services/install-dovecot/
 sudo apt-get -y install dovecot-imapd dovecot-lmtpd
@@ -65,6 +64,8 @@ sudo sed -i 's/#!include auth-passwdfile.conf.ext/!include auth-passwdfile.conf.
 #     grep -qF "$line" /etc/postfix/virtual 2>/dev/null || echo "$line" | sudo tee -a /etc/postfix/virtual
 # done
 # sudo postmap /etc/postfix/virtual
+sudo postconf -e 'virtual_alias_maps = hash:/etc/postfix/virtual'
+sudo systemctl restart postfix.service
 
 # https://doc.dovecot.org/2.4.2/core/config/quick.html#mail-location
 sudo sed -i 's|mail_location = mbox:~/mail:INBOX=/var/mail/%u|mail_location = maildir:~/Maildir|' /etc/dovecot/conf.d/10-mail.conf
