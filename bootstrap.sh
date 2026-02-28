@@ -59,6 +59,13 @@ sudo mv users /etc/dovecot/
 sudo sed -i 's/^!include auth-system.conf.ext/#!include auth-system.conf.ext/' /etc/dovecot/conf.d/10-auth.conf
 sudo sed -i 's/#!include auth-passwdfile.conf.ext/!include auth-passwdfile.conf.ext/' /etc/dovecot/conf.d/10-auth.conf
 
+# https://www.rfc-editor.org/rfc/rfc2142
+# for alias in postmaster abuse dmarc-reports; do
+#     line="$alias@example.com user@example.com"
+#     grep -qF "$line" /etc/postfix/virtual 2>/dev/null || echo "$line" | sudo tee -a /etc/postfix/virtual
+# done
+# sudo postmap /etc/postfix/virtual
+
 # https://doc.dovecot.org/2.4.2/core/config/quick.html#mail-location
 sudo sed -i 's|mail_location = mbox:~/mail:INBOX=/var/mail/%u|mail_location = maildir:~/Maildir|' /etc/dovecot/conf.d/10-mail.conf
 sudo systemctl restart dovecot.service
