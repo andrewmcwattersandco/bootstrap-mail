@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# https://knowledge.workspace.google.com/admin/security/about-authentication-methods
+# https://knowledge.workspace.google.com/admin/security/set-up-spf
+# TXT Record @ v=spf1 a:mail.example.com ~all Automatic
+# https://knowledge.workspace.google.com/admin/security/set-up-dmarc
+# TXT Record _dmarc v=DMARC1; p=reject; rua=mailto:postmaster@andrewmcwatters.com, mailto:dmarc@andrewmcwatters.com; pct=100; adkim=s; aspf=s Automatic
+
 # https://documentation.ubuntu.com/server/how-to/mail-services/install-postfix/
 sudo apt-get update
 sudo apt-get -y install postfix
@@ -59,7 +65,7 @@ sudo sed -i 's/^!include auth-system.conf.ext/#!include auth-system.conf.ext/' /
 sudo sed -i 's/#!include auth-passwdfile.conf.ext/!include auth-passwdfile.conf.ext/' /etc/dovecot/conf.d/10-auth.conf
 
 # https://www.rfc-editor.org/rfc/rfc2142
-# for alias in postmaster abuse dmarc-reports; do
+# for alias in postmaster abuse dmarc; do
 #     line="$alias@example.com user@example.com"
 #     grep -qF "$line" /etc/postfix/virtual 2>/dev/null || echo "$line" | sudo tee -a /etc/postfix/virtual
 # done
