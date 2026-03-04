@@ -1,0 +1,48 @@
+#!/bin/sh
+# addalias - Add a virtual alias to Postfix.
+#
+# Usage: addalias alias@domain destination@domain
+#
+# Appends an entry to /etc/postfix/virtual, rebuilds the map,
+# and reloads Postfix.
+
+set -e
+
+VIRTUAL_FILE=/etc/postfix/virtual
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "error: must be run as root" >&2
+    exit 1
+fi
+
+if [ $# -ne 2 ]; then
+    echo "usage: addalias alias@domain destination@domain" >&2
+    exit 1
+fi
+
+ALIAS="$1"
+DESTINATION="$2"
+
+# Validate both arguments look like email addresses.
+for ADDR in "$ALIAS" "$DESTINATION"; do
+    case "$ADDR" in
+        *@*.*)  ;;
+        *)
+            echo "error: invalid address: $ADDR" >&2
+            exit 1
+            ;;
+    esac
+done
+
+LINE="${ALIAS} ${DESTINATION}"
+
+if grep -qF "$LINE" "$VIRTUAL_FILE" 2>/dev/null; then
+    echo "error: alias already exists: $ALIAS -> $DESTINATION" >&2
+    exit 1
+fi
+
+echo "$LINE" >> "$VIRTUAL_FILE"
+postmap "$VIRTUAL_FILE"
+systemctl reload postfix.service
+
+echo "Added alias: $ALIAS -> $DESTINATION"
