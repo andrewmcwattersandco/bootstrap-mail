@@ -1,0 +1,49 @@
+#!/bin/sh
+# addaddress - Add a virtual mail user to Dovecot.
+#
+# Usage: addaddress user@domain
+#
+# Creates an entry in /etc/dovecot/users and provisions the Maildir.
+
+set -e
+
+USERS_FILE=/etc/dovecot/users
+VIRTUAL_HOME=/home/virtual
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "error: must be run as root" >&2
+    exit 1
+fi
+
+if [ $# -ne 1 ]; then
+    echo "usage: addaddress user@domain" >&2
+    exit 1
+fi
+
+ADDRESS="$1"
+
+# Validate address contains exactly one @ with non-empty local and domain parts.
+case "$ADDRESS" in
+    *@*.*)  ;;
+    *)
+        echo "error: invalid address: $ADDRESS" >&2
+        exit 1
+        ;;
+esac
+
+if grep -q "^${ADDRESS}:" "$USERS_FILE" 2>/dev/null; then
+    echo "error: address already exists: $ADDRESS" >&2
+    exit 1
+fi
+
+printf "Password: "
+HASH=$(doveadm pw -s SHA256-CRYPT)
+
+echo "${ADDRESS}:${HASH}" >> "$USERS_FILE"
+
+# Provision the Maildir under /home/virtual/<address>.
+MAILDIR="${VIRTUAL_HOME}/${ADDRESS}/Maildir"
+mkdir -p "$MAILDIR"
+chown -R vmail:vmail "${VIRTUAL_HOME}/${ADDRESS}"
+
+echo "Added: $ADDRESS"
