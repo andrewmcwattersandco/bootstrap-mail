@@ -76,3 +76,9 @@ sudo systemctl restart postfix.service
 # https://doc.dovecot.org/2.4.2/core/config/quick.html#mail-location
 sudo sed -i 's|mail_location = mbox:~/mail:INBOX=/var/mail/%u|mail_location = maildir:~/Maildir|' /etc/dovecot/conf.d/10-mail.conf
 sudo systemctl restart dovecot.service
+
+# https://www.postfix.org/postconf.5.html#smtpd_milters
+# https://wiki.debian.org/DebianSpamAssassin#main.cf
+sudo apt-get -y install spamassassin spamass-milter
+sudo postconf -e 'smtpd_milters = unix:/spamass/spamass.sock'
+sudo systemctl restart postfix.service
