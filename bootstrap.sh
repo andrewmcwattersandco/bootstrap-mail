@@ -82,3 +82,19 @@ sudo systemctl restart dovecot.service
 sudo apt-get -y install spamassassin spamass-milter
 sudo postconf -e 'smtpd_milters = unix:/spamass/spamass.sock'
 sudo systemctl restart postfix.service
+
+# https://doc.dovecot.org/main/howto/sieve.html#direct-filtering-using-message-header
+sudo apt-get -y install dovecot-sieve
+sudo sed -i 's|    special_use = \\Junk|    special_use = \\Junk\n    auto = create|' /etc/dovecot/conf.d/15-mailboxes.conf
+sudo sed -i 's/^  #mail_plugins = \$mail_plugins$/  mail_plugins = $mail_plugins sieve/' /etc/dovecot/conf.d/20-lmtp.conf
+sudo mkdir -p /var/lib/dovecot/sieve
+cat <<'EOF' | sudo tee /var/lib/dovecot/sieve/default.sieve
+require "fileinto";
+if header :contains "X-Spam-Flag" "YES" {
+    fileinto "Junk";
+    stop;
+}
+EOF
+sudo sievec /var/lib/dovecot/sieve/default.sieve
+sudo sed -i 's|^  #sieve_default = /var/lib/dovecot/sieve/default.sieve|  sieve_default = /var/lib/dovecot/sieve/default.sieve|' /etc/dovecot/conf.d/90-sieve.conf
+sudo systemctl restart dovecot.service
