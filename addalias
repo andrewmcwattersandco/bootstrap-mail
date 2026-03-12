@@ -2,6 +2,7 @@
 # addalias - Add a virtual alias to Postfix.
 #
 # Usage: addalias alias@domain destination@domain
+#        addalias @domain destination@domain  (catch-all)
 #
 # Appends an entry to /etc/postfix/virtual, rebuilds the map,
 # and reloads Postfix.
@@ -17,22 +18,31 @@ fi
 
 if [ $# -ne 2 ]; then
     echo "usage: addalias alias@domain destination@domain" >&2
+    echo "       addalias @domain destination@domain  (catch-all)" >&2
     exit 1
 fi
 
 ALIAS="$1"
 DESTINATION="$2"
 
-# Validate both arguments look like email addresses.
-for ADDR in "$ALIAS" "$DESTINATION"; do
-    case "$ADDR" in
-        *@*.*)  ;;
-        *)
-            echo "error: invalid address: $ADDR" >&2
-            exit 1
-            ;;
-    esac
-done
+# Validate alias is a full address or a catch-all (@domain).
+case "$ALIAS" in
+    *@*.*)  ;;
+    @*.*)   ;;
+    *)
+        echo "error: invalid alias: $ALIAS" >&2
+        exit 1
+        ;;
+esac
+
+# Validate destination is a full address.
+case "$DESTINATION" in
+    *@*.*)  ;;
+    *)
+        echo "error: invalid address: $DESTINATION" >&2
+        exit 1
+        ;;
+esac
 
 LINE="${ALIAS} ${DESTINATION}"
 
