@@ -46,7 +46,7 @@ esac
 
 LINE="${ALIAS} ${DESTINATION}"
 
-if grep -qF "$LINE" "$VIRTUAL_FILE" 2>/dev/null; then
+if grep -qxF "$LINE" "$VIRTUAL_FILE" 2>/dev/null; then
     echo "error: alias already exists: $ALIAS -> $DESTINATION" >&2
     exit 1
 fi
