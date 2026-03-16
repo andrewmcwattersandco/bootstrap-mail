@@ -82,8 +82,10 @@ sudo systemctl restart dovecot.service
 sudo apt-get -y install spamassassin spamass-milter
 sudo postconf -e 'smtpd_milters = unix:/spamass/spamass.sock'
 # sudo sed -i 's/# report_contact youremailaddress@domain.tld/report_contact postmaster@example.com/' /etc/spamassassin/local.cf
-sudo systemctl restart postfix.service
+sudo sed -i 's/OPTIONS="--create-prefs --max-children 5 --helper-home-dir"/OPTIONS="--create-prefs --max-children 5 --helper-home-dir -u spamass-milter"/' /etc/default/spamd
+sudo systemctl restart spamd.service
 sudo systemctl restart spamass-milter.service
+sudo systemctl restart postfix.service
 
 # https://doc.dovecot.org/main/howto/sieve.html#direct-filtering-using-message-header
 sudo apt-get -y install dovecot-sieve
