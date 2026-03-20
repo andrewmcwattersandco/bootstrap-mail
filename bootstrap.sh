@@ -3,6 +3,8 @@
 # https://knowledge.workspace.google.com/admin/security/about-authentication-methods
 # https://knowledge.workspace.google.com/admin/security/set-up-spf
 # TXT Record @ v=spf1 a:mail.example.com ~all Automatic
+# https://knowledge.workspace.google.com/admin/security/set-up-dkim
+# TXT Record default._domainkey v=DKIM1; h=sha256; k=rsa; p=... Automatic
 # https://knowledge.workspace.google.com/admin/security/set-up-dmarc
 # TXT Record _dmarc v=DMARC1; p=reject; rua=mailto:postmaster@example.com, mailto:dmarc@example.com; pct=100; adkim=s; aspf=s Automatic
 
@@ -77,10 +79,25 @@ sudo systemctl restart postfix.service
 sudo sed -i 's|mail_location = mbox:~/mail:INBOX=/var/mail/%u|mail_location = maildir:~/Maildir|' /etc/dovecot/conf.d/10-mail.conf
 sudo systemctl restart dovecot.service
 
+# https://knowledge.workspace.google.com/admin/security/set-up-dkim
+# https://wiki.debian.org/opendkim
+sudo apt-get -y install opendkim opendkim-tools
+selector=$(date +%B%Y | tr '[:upper:]' '[:lower:]')
+# sudo opendkim-genkey -s "$selector" -d example.com -D /etc/dkimkeys
+# echo "$selector._domainkey.example.com example.com:$selector:/etc/dkimkeys/$selector.private" | sudo tee /etc/dkimkeys/keytable
+# echo "*@example.com $selector._domainkey.example.com" | sudo tee /etc/dkimkeys/signingtable
+cat <<eof | sudo tee -a /etc/opendkim.conf
+
+KeyTable           refile:/etc/dkimkeys/keytable
+SigningTable       refile:/etc/dkimkeys/signingtable
+eof
+sudo chown opendkim:opendkim "/etc/dkimkeys/$selector.private" "/etc/dkimkeys/$selector.txt" /etc/dkimkeys/keytable /etc/dkimkeys/signingtable
+
 # https://www.postfix.org/postconf.5.html#smtpd_milters
 # https://wiki.debian.org/DebianSpamAssassin#main.cf
 sudo apt-get -y install spamassassin spamass-milter
-sudo postconf -e 'smtpd_milters = unix:/spamass/spamass.sock'
+sudo postconf -e 'non_smtpd_milters = unix:/run/opendkim/opendkim.sock'
+sudo postconf -e 'smtpd_milters = unix:/run/opendkim/opendkim.sock, unix:/spamass/spamass.sock'
 # sudo sed -i 's/# report_contact youremailaddress@domain.tld/report_contact postmaster@example.com/' /etc/spamassassin/local.cf
 sudo sed -i 's/OPTIONS="--create-prefs --max-children 5 --helper-home-dir"/OPTIONS="--create-prefs --max-children 5 --helper-home-dir -u spamass-milter"/' /etc/default/spamd
 sudo systemctl restart spamd.service
