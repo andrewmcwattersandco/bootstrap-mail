@@ -93,11 +93,18 @@ SigningTable       refile:/etc/dkimkeys/signingtable
 eof
 sudo chown opendkim:opendkim "/etc/dkimkeys/$selector.private" "/etc/dkimkeys/$selector.txt" /etc/dkimkeys/keytable /etc/dkimkeys/signingtable
 
+# https://wiki.debian.org/opendkim#Using_a_UNIX_domain_socket
+sudo mkdir -m o-rwx /var/spool/postfix/opendkim
+sudo chown opendkim: /var/spool/postfix/opendkim
+sudo sed -i 's|Socket			local:/run/opendkim/opendkim.sock|#Socket			local:/run/opendkim/opendkim.sock|' /etc/opendkim.conf
+sudo sed -i 's|#Socket			local:/var/spool/postfix/opendkim/opendkim.sock|Socket			local:/var/spool/postfix/opendkim/opendkim.sock|' /etc/opendkim.conf
+sudo adduser postfix opendkim
+
 # https://www.postfix.org/postconf.5.html#smtpd_milters
 # https://wiki.debian.org/DebianSpamAssassin#main.cf
 sudo apt-get -y install spamassassin spamass-milter
-sudo postconf -e 'non_smtpd_milters = unix:/run/opendkim/opendkim.sock'
-sudo postconf -e 'smtpd_milters = unix:/run/opendkim/opendkim.sock, unix:/spamass/spamass.sock'
+sudo postconf -e 'non_smtpd_milters = unix:opendkim/opendkim.sock'
+sudo postconf -e 'smtpd_milters = unix:opendkim/opendkim.sock, unix:/spamass/spamass.sock'
 # sudo sed -i 's/# report_contact youremailaddress@domain.tld/report_contact postmaster@example.com/' /etc/spamassassin/local.cf
 sudo sed -i 's/OPTIONS="--create-prefs --max-children 5 --helper-home-dir"/OPTIONS="--create-prefs --max-children 5 --helper-home-dir -u spamass-milter"/' /etc/default/spamd
 sudo systemctl restart spamd.service
