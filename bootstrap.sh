@@ -10,7 +10,16 @@
 
 # https://documentation.ubuntu.com/server/how-to/mail-services/install-postfix/
 sudo apt-get update
-sudo apt-get -y install postfix
+# sudo apt-get -y install postfix
+sudo apt-get -y install \
+  postfix=3.8.6-1build2 \
+  certbot=2.9.0-1 \
+  dovecot-imapd=1:2.3.21+dfsg1-2ubuntu6.1 \
+  dovecot-lmtpd=1:2.3.21+dfsg1-2ubuntu6.1 \
+  opendkim=2.11.0~beta2-9build4 \
+  spamassassin=4.0.0-8ubuntu5 \
+  spamass-milter=0.4.0-2 \
+  dovecot-sieve=1:2.3.21+dfsg1-2ubuntu6.1
 
 # sudo nano /etc/mailname e.g. mydomain.org
 # sudo postconf -e "mydestination = example.com, $(postconf -h mydestination)"
@@ -27,7 +36,7 @@ sudo postconf -e 'smtpd_recipient_restrictions = permit_sasl_authenticated,permi
 sudo sed -i '/^submission inet/,/^[^ ]/{s/#  -o syslog_name=postfix\/submission$/  -o syslog_name=postfix\/submission/}' /etc/postfix/master.cf
 
 # https://certbot.eff.org/instructions?ws=other&os=ubuntufocal
-sudo apt-get -y install certbot
+# sudo apt-get -y install certbot
 # sudo certbot certonly --standalone -n --agree-tos -m name@example.com -d mail.example.com
 
 # https://www.eff.org/deeplinks/2019/01/encrypting-web-encrypting-net-primer-using-certbot-secure-your-mailserver#:~:text=on%20each%20renewal.-,Postfix,-Run%20the%20following
@@ -35,7 +44,7 @@ sudo apt-get -y install certbot
 # sudo postconf -e smtpd_tls_key_file=/etc/letsencrypt/live/mail.example.com/privkey.pem
 
 # https://documentation.ubuntu.com/server/how-to/mail-services/install-dovecot/
-sudo apt-get -y install dovecot-imapd dovecot-lmtpd
+# sudo apt-get -y install dovecot-imapd dovecot-lmtpd
 
 # https://documentation.ubuntu.com/server/how-to/mail-services/install-postfix/#configure-sasl
 sudo sed -i '\|unix_listener /var/spool/postfix/private/auth|{n;/user = postfix/!s|mode = 0660|mode = 0660\n    user = postfix\n    group = postfix|}' \
@@ -81,7 +90,7 @@ sudo systemctl restart dovecot.service
 
 # https://knowledge.workspace.google.com/admin/security/set-up-dkim
 # https://wiki.debian.org/opendkim
-sudo apt-get -y install opendkim opendkim-tools
+# sudo apt-get -y install opendkim opendkim-tools
 selector=$(date +%B%Y | tr '[:upper:]' '[:lower:]')
 # sudo opendkim-genkey -s "$selector" -d example.com -D /etc/dkimkeys
 # echo "$selector._domainkey.example.com example.com:$selector:/etc/dkimkeys/$selector.private" | sudo tee /etc/dkimkeys/keytable
@@ -102,7 +111,7 @@ sudo adduser postfix opendkim
 
 # https://www.postfix.org/postconf.5.html#smtpd_milters
 # https://wiki.debian.org/DebianSpamAssassin#main.cf
-sudo apt-get -y install spamassassin spamass-milter
+# sudo apt-get -y install spamassassin spamass-milter
 sudo postconf -e 'non_smtpd_milters = unix:opendkim/opendkim.sock'
 sudo postconf -e 'smtpd_milters = unix:opendkim/opendkim.sock, unix:/spamass/spamass.sock'
 # sudo sed -i 's/# report_contact youremailaddress@domain.tld/report_contact postmaster@example.com/' /etc/spamassassin/local.cf
@@ -112,7 +121,7 @@ sudo systemctl restart spamass-milter.service
 sudo systemctl restart postfix.service
 
 # https://doc.dovecot.org/main/howto/sieve.html#direct-filtering-using-message-header
-sudo apt-get -y install dovecot-sieve
+# sudo apt-get -y install dovecot-sieve
 sudo sed -i 's|    special_use = \\Junk|    special_use = \\Junk\n    auto = create|' /etc/dovecot/conf.d/15-mailboxes.conf
 sudo sed -i 's/^  #mail_plugins = \$mail_plugins$/  mail_plugins = $mail_plugins sieve/' /etc/dovecot/conf.d/20-lmtp.conf
 sudo mkdir -p /var/lib/dovecot/sieve
