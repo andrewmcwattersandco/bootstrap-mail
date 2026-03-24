@@ -2,7 +2,7 @@
 
 # https://knowledge.workspace.google.com/admin/security/about-authentication-methods
 # https://knowledge.workspace.google.com/admin/security/set-up-spf
-# TXT Record @ v=spf1 a:mail.example.com ~all Automatic
+# TXT Record @ v=spf1 a:mail.example.com -all Automatic
 # https://knowledge.workspace.google.com/admin/security/set-up-dkim
 # TXT Record default._domainkey v=DKIM1; h=sha256; k=rsa; p=... Automatic
 # https://knowledge.workspace.google.com/admin/security/set-up-dmarc
