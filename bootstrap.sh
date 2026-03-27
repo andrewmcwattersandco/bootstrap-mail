@@ -135,3 +135,12 @@ eof
 sudo sievec /var/lib/dovecot/sieve/default.sieve
 sudo sed -i 's|^  #sieve_default = /var/lib/dovecot/sieve/default.sieve|  sieve_default = /var/lib/dovecot/sieve/default.sieve|' /etc/dovecot/conf.d/90-sieve.conf
 sudo systemctl restart dovecot.service
+
+# no-reply support
+# https://www.postfix.org/RESTRICTION_CLASS_README.html
+cat <<eof | sudo tee /etc/postfix/recipient_access
+no-reply@example.com REJECT
+eof
+sudo postmap /etc/postfix/recipient_access
+sudo postconf -e "smtpd_recipient_restrictions = check_recipient_access hash:/etc/postfix/recipient_access,$(postconf smtpd_recipient_restrictions | sed 's|smtpd_recipient_restrictions = ||')"
+sudo systemctl restart postfix.service
