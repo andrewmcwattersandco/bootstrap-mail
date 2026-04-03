@@ -23,7 +23,7 @@ sudo apt-get -y install \
 # https://docs.rspamd.com/getting-started/installation#ubuntudebian
 # Add Rspamd repository GPG key (modern method)
 curl -fsSL https://rspamd.com/apt-stable/gpg.key | \
-  sudo gpg --dearmor -o /usr/share/keyrings/rspamd.gpg
+  sudo gpg --yes --dearmor -o /usr/share/keyrings/rspamd.gpg
 
 # Add Rspamd repository
 echo "deb [signed-by=/usr/share/keyrings/rspamd.gpg] https://rspamd.com/apt-stable/ $(lsb_release -cs) main" | \
@@ -33,7 +33,7 @@ echo "deb [signed-by=/usr/share/keyrings/rspamd.gpg] https://rspamd.com/apt-stab
 sudo apt update
 
 # Install Rspamd and Redis
-sudo apt install rspamd redis-server
+sudo apt-get -y install rspamd redis-server
 
 # Start and enable services
 sudo systemctl start rspamd redis-server
@@ -80,7 +80,7 @@ sudo postconf -e 'mailbox_transport = lmtp:unix:private/dovecot-lmtp'
 # sudo sed -i 's|ssl_key = </etc/dovecot/private/dovecot.key|ssl_key = </etc/letsencrypt/live/mail.example.com/privkey.pem|' /etc/dovecot/conf.d/10-ssl.conf
 
 # https://doc.dovecot.org/2.4.2/core/config/quick.html#tldr-i-just-want-dovecot-running
-sudo adduser --system --group vmail
+id -u vmail >/dev/null 2>&1 || sudo adduser --system --group vmail
 sudo sed -i 's/#mail_uid =/mail_uid = vmail/' /etc/dovecot/conf.d/10-mail.conf
 sudo sed -i 's/#mail_gid =/mail_gid = vmail/' /etc/dovecot/conf.d/10-mail.conf
 sudo sed -i 's|#override_fields = home=/home/virtual/%u|override_fields = home=/home/virtual/%u|' /etc/dovecot/conf.d/auth-passwdfile.conf.ext
@@ -113,7 +113,7 @@ selector=$(date +%B%Y | tr '[:upper:]' '[:lower:]')
 # sudo opendkim-genkey -s "$selector" -d example.com -D /etc/dkimkeys
 # echo "$selector._domainkey.example.com example.com:$selector:/etc/dkimkeys/$selector.private" | sudo tee /etc/dkimkeys/keytable
 # echo "*@example.com $selector._domainkey.example.com" | sudo tee /etc/dkimkeys/signingtable
-cat <<eof | sudo tee -a /etc/opendkim.conf
+grep -qF 'KeyTable' /etc/opendkim.conf || cat <<eof | sudo tee -a /etc/opendkim.conf
 
 KeyTable           refile:/etc/dkimkeys/keytable
 SigningTable       refile:/etc/dkimkeys/signingtable
@@ -121,7 +121,7 @@ eof
 sudo chown opendkim:opendkim "/etc/dkimkeys/$selector.private" "/etc/dkimkeys/$selector.txt" /etc/dkimkeys/keytable /etc/dkimkeys/signingtable
 
 # https://wiki.debian.org/opendkim#Using_a_UNIX_domain_socket
-sudo mkdir -m o-rwx /var/spool/postfix/opendkim
+sudo mkdir -p -m o-rwx /var/spool/postfix/opendkim
 sudo chown opendkim: /var/spool/postfix/opendkim
 sudo sed -i 's|Socket			local:/run/opendkim/opendkim.sock|#Socket			local:/run/opendkim/opendkim.sock|' /etc/opendkim.conf
 sudo sed -i 's|#Socket			local:/var/spool/postfix/opendkim/opendkim.sock|Socket			local:/var/spool/postfix/opendkim/opendkim.sock|' /etc/opendkim.conf
@@ -157,5 +157,9 @@ cat <<eof | sudo tee /etc/postfix/recipient_access
 no-reply@example.com REJECT
 eof
 sudo postmap /etc/postfix/recipient_access
-sudo postconf -e "smtpd_recipient_restrictions = check_recipient_access hash:/etc/postfix/recipient_access,$(postconf smtpd_recipient_restrictions | sed 's|smtpd_recipient_restrictions = ||')"
+current=$(postconf smtpd_recipient_restrictions | sed 's|smtpd_recipient_restrictions = ||')
+case "$current" in
+    check_recipient_access*) ;;
+    *) sudo postconf -e "smtpd_recipient_restrictions = check_recipient_access hash:/etc/postfix/recipient_access,$current" ;;
+esac
 sudo systemctl restart postfix.service
