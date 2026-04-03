@@ -20,6 +20,25 @@ sudo apt-get -y install \
   rspamd \
   dovecot-sieve=1:2.3.21+dfsg1-2ubuntu6.1
 
+# https://docs.rspamd.com/getting-started/installation#ubuntudebian
+# Add Rspamd repository GPG key (modern method)
+curl -fsSL https://rspamd.com/apt-stable/gpg.key | \
+  sudo gpg --dearmor -o /usr/share/keyrings/rspamd.gpg
+
+# Add Rspamd repository
+echo "deb [signed-by=/usr/share/keyrings/rspamd.gpg] https://rspamd.com/apt-stable/ $(lsb_release -cs) main" | \
+  sudo tee /etc/apt/sources.list.d/rspamd.list
+
+# Update package list
+sudo apt update
+
+# Install Rspamd and Redis
+sudo apt install rspamd redis-server
+
+# Start and enable services
+sudo systemctl start rspamd redis-server
+sudo systemctl enable rspamd redis-server
+
 # sudo nano /etc/mailname e.g. mydomain.org
 # sudo postconf -e "mydestination = example.com, $(postconf -h mydestination)"
 
