@@ -17,8 +17,7 @@ sudo apt-get -y install \
   dovecot-imapd=1:2.3.21+dfsg1-2ubuntu6.1 \
   dovecot-lmtpd=1:2.3.21+dfsg1-2ubuntu6.1 \
   opendkim=2.11.0~beta2-9build4 \
-  spamassassin=4.0.0-8ubuntu5 \
-  spamass-milter=0.4.0-2 \
+  rspamd \
   dovecot-sieve=1:2.3.21+dfsg1-2ubuntu6.1
 
 # sudo nano /etc/mailname e.g. mydomain.org
@@ -110,14 +109,11 @@ sudo sed -i 's|#Socket			local:/var/spool/postfix/opendkim/opendkim.sock|Socket	
 sudo adduser postfix opendkim
 
 # https://www.postfix.org/postconf.5.html#smtpd_milters
-# https://wiki.debian.org/DebianSpamAssassin#main.cf
-# sudo apt-get -y install spamassassin spamass-milter
+# https://rspamd.com/doc/workers/rspamd_proxy.html
 sudo postconf -e 'non_smtpd_milters = unix:opendkim/opendkim.sock'
-sudo postconf -e 'smtpd_milters = unix:opendkim/opendkim.sock, unix:/spamass/spamass.sock'
-# sudo sed -i 's/# report_contact youremailaddress@domain.tld/report_contact postmaster@example.com/' /etc/spamassassin/local.cf
-sudo sed -i 's/OPTIONS="--create-prefs --max-children 5 --helper-home-dir"/OPTIONS="--create-prefs --max-children 5 --helper-home-dir -u spamass-milter"/' /etc/default/spamd
-sudo systemctl restart spamd.service
-sudo systemctl restart spamass-milter.service
+sudo postconf -e 'smtpd_milters = unix:opendkim/opendkim.sock, inet:localhost:11332'
+sudo systemctl enable rspamd.service
+sudo systemctl restart rspamd.service
 sudo systemctl restart postfix.service
 
 # https://doc.dovecot.org/main/howto/sieve.html#direct-filtering-using-message-header
@@ -127,7 +123,7 @@ sudo sed -i 's/^  #mail_plugins = \$mail_plugins$/  mail_plugins = $mail_plugins
 sudo mkdir -p /var/lib/dovecot/sieve
 cat <<eof | sudo tee /var/lib/dovecot/sieve/default.sieve
 require "fileinto";
-if header :contains "X-Spam-Flag" "YES" {
+if header :contains "X-Spam" "Yes" {
     fileinto "Junk";
     stop;
 }
