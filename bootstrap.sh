@@ -8,6 +8,12 @@
 # https://knowledge.workspace.google.com/admin/security/set-up-dmarc
 # TXT Record _dmarc v=DMARC1; p=reject; rua=mailto:postmaster@example.com, mailto:dmarc@example.com; pct=100; adkim=s; aspf=s Automatic
 
+# https://docs.rspamd.com/getting-started/installation#ubuntudebian
+curl -fsSL https://rspamd.com/apt-stable/gpg.key | \
+  sudo gpg --yes --dearmor -o /usr/share/keyrings/rspamd.gpg
+echo "deb [signed-by=/usr/share/keyrings/rspamd.gpg] https://rspamd.com/apt-stable/ $(lsb_release -cs) main" | \
+  sudo tee /etc/apt/sources.list.d/rspamd.list
+
 # https://documentation.ubuntu.com/server/how-to/mail-services/install-postfix/
 sudo apt-get update
 # sudo apt-get -y install postfix
@@ -18,26 +24,8 @@ sudo apt-get -y install \
   dovecot-lmtpd=1:2.3.21+dfsg1-2ubuntu6.1 \
   opendkim=2.11.0~beta2-9build4 \
   rspamd \
+  redis-server \
   dovecot-sieve=1:2.3.21+dfsg1-2ubuntu6.1
-
-# https://docs.rspamd.com/getting-started/installation#ubuntudebian
-# Add Rspamd repository GPG key (modern method)
-curl -fsSL https://rspamd.com/apt-stable/gpg.key | \
-  sudo gpg --yes --dearmor -o /usr/share/keyrings/rspamd.gpg
-
-# Add Rspamd repository
-echo "deb [signed-by=/usr/share/keyrings/rspamd.gpg] https://rspamd.com/apt-stable/ $(lsb_release -cs) main" | \
-  sudo tee /etc/apt/sources.list.d/rspamd.list
-
-# Update package list
-sudo apt update
-
-# Install Rspamd and Redis
-sudo apt-get -y install rspamd redis-server
-
-# Start and enable services
-sudo systemctl start rspamd redis-server
-sudo systemctl enable rspamd redis-server
 
 # sudo nano /etc/mailname e.g. mydomain.org
 # sudo postconf -e "mydestination = example.com, $(postconf -h mydestination)"
