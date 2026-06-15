@@ -125,6 +125,7 @@ sudo systemctl restart postfix.service
 
 # https://doc.dovecot.org/main/howto/sieve.html#direct-filtering-using-message-header
 # sudo apt-get -y install dovecot-sieve
+sudo sed -i '/special_use = \\Drafts/{n;/auto = create/b;s/^/    auto = create\n/}' /etc/dovecot/conf.d/15-mailboxes.conf
 sudo sed -i '/special_use = \\Junk/{n;/auto = create/b;s/^/    auto = create\n/}' /etc/dovecot/conf.d/15-mailboxes.conf
 sudo sed -i 's/^  #mail_plugins = \$mail_plugins$/  mail_plugins = $mail_plugins sieve/' /etc/dovecot/conf.d/20-lmtp.conf
 sudo mkdir -p /var/lib/dovecot/sieve
