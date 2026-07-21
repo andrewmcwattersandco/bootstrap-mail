@@ -115,13 +115,22 @@ sudo sed -i 's|Socket			local:/run/opendkim/opendkim.sock|#Socket			local:/run/o
 sudo sed -i 's|#Socket			local:/var/spool/postfix/opendkim/opendkim.sock|Socket			local:/var/spool/postfix/opendkim/opendkim.sock|' /etc/opendkim.conf
 sudo adduser postfix opendkim
 
+# https://docs.rspamd.com/getting-started/first-setup#step-1-essential-configuration
+# https://docs.rspamd.com/getting-started/first-setup#:~:text=Configure%20Redis%20in%20/etc/rspamd/local.d/redis.conf:
+sudo tee /etc/rspamd/local.d/redis.conf <<eof
+servers = "127.0.0.1:6379";
+timeout = 1s;
+# db = "0";
+# password = "your_redis_password";
+eof
+
 # https://www.postfix.org/postconf.5.html#smtpd_milters
 # https://rspamd.com/doc/workers/rspamd_proxy.html
 sudo postconf -e 'non_smtpd_milters = unix:opendkim/opendkim.sock'
 sudo postconf -e 'smtpd_milters = unix:opendkim/opendkim.sock, inet:localhost:11332'
-sudo systemctl enable rspamd.service
-sudo systemctl restart rspamd.service
-sudo systemctl restart postfix.service
+sudo systemctl restart rspamd
+sudo systemctl status rspamd
+sudo systemctl reload postfix
 
 # https://doc.dovecot.org/main/howto/sieve.html#direct-filtering-using-message-header
 # sudo apt-get -y install dovecot-sieve
