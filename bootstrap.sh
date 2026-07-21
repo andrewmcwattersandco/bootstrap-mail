@@ -125,12 +125,11 @@ timeout = 1s;
 eof
 
 # https://www.postfix.org/postconf.5.html#smtpd_milters
+# https://docs.rspamd.com/getting-started/first-setup#step-3-mail-server-integration
 # https://rspamd.com/doc/workers/rspamd_proxy.html
 sudo postconf -e 'non_smtpd_milters = unix:opendkim/opendkim.sock'
 sudo postconf -e 'smtpd_milters = unix:opendkim/opendkim.sock, inet:localhost:11332'
-sudo systemctl restart rspamd
-# sudo systemctl status rspamd
-sudo systemctl reload postfix
+sudo systemctl restart rspamd postfix
 
 # https://doc.dovecot.org/main/howto/sieve.html#direct-filtering-using-message-header
 # sudo apt-get -y install dovecot-sieve
