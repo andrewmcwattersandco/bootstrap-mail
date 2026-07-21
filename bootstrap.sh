@@ -129,7 +129,7 @@ eof
 sudo postconf -e 'non_smtpd_milters = unix:opendkim/opendkim.sock'
 sudo postconf -e 'smtpd_milters = unix:opendkim/opendkim.sock, inet:localhost:11332'
 sudo systemctl restart rspamd
-sudo systemctl status rspamd
+# sudo systemctl status rspamd
 sudo systemctl reload postfix
 
 # https://doc.dovecot.org/main/howto/sieve.html#direct-filtering-using-message-header
