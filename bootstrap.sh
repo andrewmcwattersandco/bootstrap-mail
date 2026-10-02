@@ -18,14 +18,14 @@ echo "deb [signed-by=/usr/share/keyrings/rspamd.gpg] https://rspamd.com/apt-stab
 sudo apt-get update
 # sudo apt-get -y install postfix
 sudo apt-get -y install \
-  postfix=3.8.6-1build2 \
-  certbot=2.9.0-1 \
-  dovecot-imapd=1:2.3.21+dfsg1-2ubuntu6.1 \
-  dovecot-lmtpd=1:2.3.21+dfsg1-2ubuntu6.1 \
-  opendkim=2.11.0~beta2-9build4 \
+  postfix=3.10.6-4ubuntu2.1 \
+  certbot=4.0.0-4 \
+  dovecot-imapd=1:2.4.2+dfsg1-3ubuntu2.1 \
+  dovecot-lmtpd=1:2.4.2+dfsg1-3ubuntu2.1 \
+  opendkim=2.11.0~beta2-9.2build1 \
   rspamd \
   redis-server \
-  dovecot-sieve=1:2.3.21+dfsg1-2ubuntu6.1
+  dovecot-sieve=1:2.4.2+dfsg1-3ubuntu2.1
 
 # sudo nano /etc/mailname e.g. mydomain.org
 # sudo postconf -e "mydestination = example.com, $(postconf -h mydestination)"
@@ -57,21 +57,22 @@ sudo sed -i '\|unix_listener /var/spool/postfix/private/auth|{n;N;/user = postfi
   /etc/dovecot/conf.d/10-master.conf
 sudo sed -i 's|unix_listener lmtp {|unix_listener /var/spool/postfix/private/dovecot-lmtp {|' \
   /etc/dovecot/conf.d/10-master.conf
-sudo sed -i 's/^#auth_username_format = %Lu$/auth_username_format = %Ln/' \
+sudo sed -i 's,^#auth_username_format = %{user|lower}$,auth_username_format = %{user \| lower },' \
   /etc/dovecot/conf.d/10-auth.conf
-sudo sed -i 's/^auth_mechanisms = plain$/auth_mechanisms = plain login/' \
+sudo sed -i 's/^#auth_mechanisms = plain login *$/auth_mechanisms = plain login/' \
   /etc/dovecot/conf.d/10-auth.conf
 sudo postconf -e 'mailbox_transport = lmtp:unix:private/dovecot-lmtp'
 
 # https://www.eff.org/deeplinks/2019/01/encrypting-web-encrypting-net-primer-using-certbot-secure-your-mailserver#:~:text=information%20as%20well.-,Dovecot,-Most%20Linux%20distributions
-# sudo sed -i 's|ssl_cert = </etc/dovecot/private/dovecot.pem|ssl_cert = </etc/letsencrypt/live/mail.example.com/fullchain.pem|' /etc/dovecot/conf.d/10-ssl.conf
-# sudo sed -i 's|ssl_key = </etc/dovecot/private/dovecot.key|ssl_key = </etc/letsencrypt/live/mail.example.com/privkey.pem|' /etc/dovecot/conf.d/10-ssl.conf
+# sudo sed -i 's|^ssl_server_cert_file = .*|ssl_server_cert_file = </etc/letsencrypt/live/mail.example.com/fullchain.pem|' /etc/dovecot/conf.d/10-ssl.conf
+# sudo sed -i 's|^ssl_server_key_file = .*|ssl_server_key_file = </etc/letsencrypt/live/mail.example.com/privkey.pem|' /etc/dovecot/conf.d/10-ssl.conf
 
 # https://doc.dovecot.org/2.4.2/core/config/quick.html#tldr-i-just-want-dovecot-running
 id -u vmail >/dev/null 2>&1 || sudo adduser --system --group vmail
 sudo sed -i 's/#mail_uid =/mail_uid = vmail/' /etc/dovecot/conf.d/10-mail.conf
 sudo sed -i 's/#mail_gid =/mail_gid = vmail/' /etc/dovecot/conf.d/10-mail.conf
-sudo sed -i 's|#override_fields = home=/home/virtual/%u|override_fields = home=/home/virtual/%u|' /etc/dovecot/conf.d/auth-passwdfile.conf.ext
+sudo sed -i 's/^#first_valid_uid = 500$/first_valid_uid = 100/' /etc/dovecot/conf.d/10-mail.conf
+sudo sed -i -e '/^#passdb passwd-file {$/,/^#}$/s|^#||' -e '/^#userdb passwd-file {$/,/^#}$/s|^#||' /etc/dovecot/conf.d/auth-passwdfile.conf.ext
 sudo mkdir -p /home/virtual
 sudo chown vmail:vmail /home/virtual
 
@@ -91,7 +92,7 @@ sudo postconf -e 'virtual_alias_maps = hash:/etc/postfix/virtual'
 sudo systemctl restart postfix.service
 
 # https://doc.dovecot.org/2.4.2/core/config/quick.html#mail-location
-sudo sed -i 's|mail_location = mbox:~/mail:INBOX=/var/mail/%u|mail_location = maildir:~/Maildir|' /etc/dovecot/conf.d/10-mail.conf
+sudo sed -i '$a mail_driver = maildir\nmail_path = ~/Maildir' /etc/dovecot/conf.d/10-mail.conf
 sudo systemctl restart dovecot.service
 
 # https://knowledge.workspace.google.com/admin/security/set-up-dkim
@@ -135,7 +136,7 @@ sudo systemctl restart rspamd postfix
 # sudo apt-get -y install dovecot-sieve
 sudo sed -i '/special_use = \\Drafts/{n;/auto = create/b;s/^/    auto = create\n/}' /etc/dovecot/conf.d/15-mailboxes.conf
 sudo sed -i '/special_use = \\Junk/{n;/auto = create/b;s/^/    auto = create\n/}' /etc/dovecot/conf.d/15-mailboxes.conf
-sudo sed -i 's/^  #mail_plugins = \$mail_plugins$/  mail_plugins = $mail_plugins sieve/' /etc/dovecot/conf.d/20-lmtp.conf
+sudo sed -i '/^  #mail_plugins {$/,/^  #}$/s|^  #|  |' /etc/dovecot/conf.d/20-lmtp.conf
 sudo mkdir -p /var/lib/dovecot/sieve
 cat <<eof | sudo tee /var/lib/dovecot/sieve/default.sieve
 require "fileinto";
@@ -145,7 +146,7 @@ if header :contains "X-Spam" "Yes" {
 }
 eof
 sudo sievec /var/lib/dovecot/sieve/default.sieve
-sudo sed -i 's|^  #sieve_default = /var/lib/dovecot/sieve/default.sieve|  sieve_default = /var/lib/dovecot/sieve/default.sieve|' /etc/dovecot/conf.d/90-sieve.conf
+sudo sed -i -e '/^#sieve_script default {$/,/^#}$/s|^#||' -e 's|^  path = /etc/dovecot/sieve/default/$|  path = /var/lib/dovecot/sieve/default.sieve|' /etc/dovecot/conf.d/90-sieve.conf
 sudo systemctl restart dovecot.service
 
 # no-reply support
