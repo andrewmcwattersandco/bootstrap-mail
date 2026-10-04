@@ -55,8 +55,13 @@ sudo sed -i '/^submission inet/,/^[^ ]/{s/#  -o syslog_name=postfix\/submission$
 # https://documentation.ubuntu.com/server/how-to/mail-services/install-postfix/#configure-sasl
 sudo sed -i '\|unix_listener /var/spool/postfix/private/auth|{n;N;/user = postfix/b;s|\n|\n    user = postfix\n    group = postfix\n|}' \
   /etc/dovecot/conf.d/10-master.conf
-sudo sed -i 's|unix_listener lmtp {|unix_listener /var/spool/postfix/private/dovecot-lmtp {|' \
-  /etc/dovecot/conf.d/10-master.conf
+sudo sed -i '/^  #*unix_listener lmtp {$/,/^  #*}$/c\
+  unix_listener /var/spool/postfix/private/dovecot-lmtp {\
+    mode = 0660\
+    user = postfix\
+    group = postfix\
+  }' /etc/dovecot/conf.d/10-master.conf
+sudo doveconf -n | grep -q 'dovecot-lmtp' || { echo "ERROR: dovecot-lmtp listener not configured" >&2; exit 1; }
 sudo sed -i 's,^#auth_username_format = %{user|lower}$,auth_username_format = %{user \| lower },' \
   /etc/dovecot/conf.d/10-auth.conf
 sudo sed -i 's/^#auth_mechanisms = plain login *$/auth_mechanisms = plain login/' \
