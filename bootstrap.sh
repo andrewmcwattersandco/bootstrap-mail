@@ -97,7 +97,8 @@ sudo postconf -e 'virtual_alias_maps = hash:/etc/postfix/virtual'
 sudo systemctl restart postfix.service
 
 # https://doc.dovecot.org/2.4.2/core/config/quick.html#mail-location
-sudo sed -i '$a mail_driver = maildir\nmail_path = ~/Maildir' /etc/dovecot/conf.d/10-mail.conf
+sudo grep -q '^mail_driver = ' /etc/dovecot/conf.d/10-mail.conf || \
+  sudo sed -i '$a mail_driver = maildir\nmail_path = ~/Maildir' /etc/dovecot/conf.d/10-mail.conf
 sudo systemctl restart dovecot.service
 
 # https://knowledge.workspace.google.com/admin/security/set-up-dkim
